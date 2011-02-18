@@ -5,21 +5,69 @@
  * LICENSE before you use, modify, and/or redistribute this software.
  */
 (function($) {
-    var immune = {
+    var default_immune = {
         'attr'      : [',','.','-','_'],
         'css'       : ['(',',','\'','"',')',' ']
     };
 
     var unsafeKeys = {
         'attr'      : [],
-        'css'       : ['behavior']
+        'css'       : ['behavior', '-moz-behavior']
+    };
+
+    /**
+     * Encodes the provided input in a manner safe to place between to HTML tags
+     * @param input The untrusted input to be encoded
+     */
+    $.encodeForHTML = function(input) {
+        var div = document.createElement('div');
+        $(div).text(input);
+        return $(div).html();
+    };
+
+    /**
+     * Encodes the provided input in a manner safe to place in the value (between to "'s) in an HTML attribute.
+     * @param input The untrusted input to be encoded
+     * @param immune Any characters or character groups to be considered immune from encoding
+     */
+    $.encodeForHTMLAttribute = function(input, immune) {
+        if ( !immune ) immune = default_immune['attr'];
+        var encoded = '';
+        for (var i = 0; i < input.length; i++) {
+            var ch = input.charAt(i), cc = input.charCodeAt(i);
+            if (!ch.match(/[a-zA-Z0-9]/) && $.inArray(ch, immune) < 0) {
+                var hex = cc.toString(16);
+                encoded += '&#x' + hex + ';';
+            } else {
+                encoded += ch;
+            }
+        }
+        return encoded;
+    };
+
+    /**
+     * Encodes the provided input in a manner safe to place in the value of an elements <code>style</code> attribute
+     * @param input The untrusted input to be encoded
+     * @param immune Any characters or character groups to be considered immune from encoding
+     */
+    $.encodeForCSS = function(input, immune) {
+        if ( !immune ) immune = default_immune['css'];
+        var encoded = '';
+        for (var i = 0; i < input.length; i++) {
+            var ch = input.charAt(i), cc = input.charCodeAt(i);
+            if (!ch.match(/[a-zA-Z0-9]/) && $.inArray(ch, immune) < 0) {
+                var hex = cc.toString(16);
+                encoded += '\\' + hex;
+            } else {
+                encoded += ch;
+            }
+        }
+        return encoded;
     };
 
     var methods = {
         html: function(opts) {
-            var div = document.createElement('div');
-            $(div).text(opts.unsafe);
-            return $(div).html();
+            return $.encodeForHTML(opts.unsafe);
         },
 
         css: function(opts) {
@@ -36,18 +84,7 @@
                 if ( !(typeof work[k] == 'function') && work.hasOwnProperty(k) ) {
                     var cKey = $.canonicalize(k, opts.strict);
                     if ($.inArray(cKey, unsafeKeys[opts.context]) < 0) {
-                        var unsafe = work[k];
-                        var encoded = '';
-                        for (var i = 0; i < unsafe.length; i++) {
-                            var ch = unsafe.charAt(i), cc = unsafe.charCodeAt(i);
-                            if (!ch.match(/[a-zA-Z0-9]/) && $.inArray(ch, immune[opts.context]) < 0) {
-                                var hex = cc.toString(16);
-                                encoded += '\\' + hex;
-                            } else {
-                                encoded += ch;
-                            }
-                        }
-                        out[k] = encoded;
+                        out[k] = $.encodeForCSS(work[k]);
                     }
                 }
             }
@@ -68,18 +105,7 @@
                 if ( ! (typeof work[k] == 'function') && work.hasOwnProperty(k) ) {
                     var cKey = $.canonicalize(k, opts.strict);
                     if ($.inArray(cKey, unsafeKeys[opts.context]) < 0) {
-                        var unsafe = work[k];
-                        var encoded = '';
-                        for (var i = 0; i < unsafe.length; i++) {
-                            var ch = unsafe.charAt(i), cc = unsafe.charCodeAt(i);
-                            if (!ch.match(/[a-zA-Z0-9]/) && $.inArray(ch, immune[opts.context]) < 0) {
-                                var hex = cc.toString(16);
-                                encoded += '&#x' + hex + ';';
-                            } else {
-                                encoded += ch;
-                            }
-                        }
-                        out[k] = encoded;
+                        out[k] = $.encodeForHTMLAttribute(work[k]);
                     }
                 }
             }

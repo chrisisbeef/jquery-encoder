@@ -114,12 +114,15 @@
             equal( e.html(), '&lt;b&gt;' );
             e.encode('html', "&lt;script&gt;");
             equal( e.html(), '&amp;lt;script&amp;gt;');
+            equal( $.encodeForHTML('<b>'), '&lt;b&gt;')
+            equal( $.encodeForHTML('&lt;script&gt;'), '&amp;lt;script&amp;gt;' );
         });
 
         module('HTML Attribute Contextual Encoding');
         test('Attribute Encoding', function() {
             var e = $('#test');
             equal( e.encode( 'attr', 'a', '<B>').attr('a'), '&#x3c;B&#x3e;' );
+            equal( $.encodeForHTMLAttribute( '<B>' ), '&#x3c;B&#x3e;')
         });
 
         if ( Object.freeze ) {
