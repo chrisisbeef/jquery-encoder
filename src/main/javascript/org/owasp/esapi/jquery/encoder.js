@@ -33,7 +33,7 @@
             }
 
             for (var k in work) {
-                if ( !(typeof work[k] == 'function') ) {
+                if ( !(typeof work[k] == 'function') && work.hasOwnProperty(k) ) {
                     var cKey = $.canonicalize(k, opts.strict);
                     if ($.inArray(cKey, unsafeKeys[opts.context]) < 0) {
                         var unsafe = work[k];
@@ -42,7 +42,7 @@
                             var ch = unsafe.charAt(i), cc = unsafe.charCodeAt(i);
                             if (!ch.match(/[a-zA-Z0-9]/) && $.inArray(ch, immune[opts.context]) < 0) {
                                 var hex = cc.toString(16);
-                                encoded += '\\' + hex + ';';
+                                encoded += '\\' + hex;
                             } else {
                                 encoded += ch;
                             }
@@ -65,7 +65,7 @@
             }
 
             for (var k in work) {
-                if ( ! (typeof work[k] == 'function') ) {
+                if ( ! (typeof work[k] == 'function') && work.hasOwnProperty(k) ) {
                     var cKey = $.canonicalize(k, opts.strict);
                     if ($.inArray(cKey, unsafeKeys[opts.context]) < 0) {
                         var unsafe = work[k];
@@ -1108,13 +1108,13 @@
         /* 9830 : black diamond suit */
 
         for (var entity in MAP_ENTITY_TO_CHAR) {
-            if ( !(typeof MAP_ENTITY_TO_CHAR[entity] == 'function') ) {
+            if ( !(typeof MAP_ENTITY_TO_CHAR[entity] == 'function') && MAP_ENTITY_TO_CHAR.hasOwnProperty(entity) ) {
                 MAP_CHAR_TO_ENTITY[MAP_ENTITY_TO_CHAR[entity]] = entity;
             }
         }
 
         for (var c in MAP_CHAR_TO_ENTITY) {
-            if ( !(typeof MAP_CHAR_TO_ENTITY[c] == 'function') ) {
+            if ( !(typeof MAP_CHAR_TO_ENTITY[c] == 'function') && MAP_CHAR_TO_ENTITY.hasOwnProperty(c) ) {
                 var ent = MAP_CHAR_TO_ENTITY[c].toLowerCase().substr(1);
                 ENTITY_TO_CHAR_TRIE.put(ent,String.fromCharCode(c));
             }
