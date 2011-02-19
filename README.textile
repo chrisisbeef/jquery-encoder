@@ -27,10 +27,16 @@ h2. Dependencies
 h2. Static Methods
 
 h3. canonicalize( @String data@, @bool strict=true@ )
+
 Canonicalization (also called normalization) is the act of reducing a string to it's simplest form. For example, if the string @%3CB%3E@ is passed into the canonicalize method, the value returned will be decoded into @<b>@. The most important part of this method is that it will detect if a string is passed in that contains either multiple encoding types, or double encoding, or both. The default behavior of the method is to raise an exception if it detects one of these scenarios. As a general rule, normal application operation should never pass data that is either double encoded or encoded using multiple escaping rules. Most definately, data that is provided by a user (such as a form field) will never contain data that fits that description.
 
 <pre lang="ruby">
-    $.canonicalize(
+    try {
+        $.canonicalize(untrusted_data);
+    } catch (e) {
+        log.error(e);
+        alert('An error has occured');
+    }
 </pre>
 
 h3. encodeForCSS
