@@ -1,1 +1,53 @@
-This file was created by IntelliJ IDEA 10.0 for binding GitHub repository
+h1. What is jqencoder
+
+jqencoder is a jQuery plugin whose goal is to provide jQuery developers with a means
+to do contextual output encoding on untrusted data. As applications become more and more
+reliant on rich client technologies the need for client-side code to have the ability
+to properly escape untrusted data becomes exponentially more important.
+
+h1. Usage
+
+Using the plugin is very simple, there are both static and instance methods to provide
+the right type of output encoding for your current situation. The plugin also provides
+a canonicalization method, which is imperative for detecting attacks that use double or
+multi encoding when handling data from an untrusted source. If you are dealing with data
+that may contain encoding, you can first canonicalize that data, then re-encode it for
+the appropriate context.
+
+<pre lang="ruby">
+<script type="text/javascript">
+    $.post( 'http://untrusted.com/webservice', { parameter1: 'value' }, function(data) {
+        // Data returned may contain encoded data, so canonicalize the data to it's simplest
+        // form prior to encoding it for use on the page.
+        var cdata = $.canonicalize(data);
+        $('#element').encode('html', cdata);
+    });
+</script>
+</pre>
+
+h2. Dependencies
+<pre lang="html">
+<head>
+    <script type="text/javascript" src="jquery-min.js"></script>
+    <script type="text/javascript" src="Class.create.js"></script>
+    <script type="text/javascript" src="jquery-encoding-0.1.0.js"></script>
+</head>
+</pre>
+
+h2. Static Methods
+
+h3. canonicalize
+
+h3. encodeForCSS
+
+h3. encodeForHTML
+
+h3. encodeForHTMLAttribute
+
+h3. encodeForJavascript
+
+h3. encodeForURL
+
+h2. Instance Methods
+
+h3. encode
