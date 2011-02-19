@@ -26,7 +26,7 @@ h2. Dependencies
 
 h2. Static Methods
 
-h3. canonicalize( @String data@, @bool strict=true@ )
+h3. @canonicalize( String data, bool strict=true )@
 
 Canonicalization (also called normalization) is the act of reducing a string to it's simplest form. For example, if the string @%3CB%3E@ is passed into the canonicalize method, the value returned will be decoded into @<b>@. The most important part of this method is that it will detect if a string is passed in that contains either multiple encoding types, or double encoding, or both. The default behavior of the method is to raise an exception if it detects one of these scenarios. As a general rule, normal application operation should never pass data that is either double encoded or encoded using multiple escaping rules. Most definately, data that is provided by a user (such as a form field) will never contain data that fits that description.
 
@@ -39,16 +39,34 @@ Canonicalization (also called normalization) is the act of reducing a string to 
     }
 </pre>
 
-h3. encodeForCSS
+h3. @encodeForCSS( String input, char[] immune )@
 
-h3. encodeForHTML
+This method allows developers to encode data specifically to be inserted into the @style@ attribute of an element or as the value of a style attribute passed in through the jQuery @.style()@ method.
 
-h3. encodeForHTMLAttribute
+<pre lang="ruby">
+    $.post('/service/userprefs', { user: userID }, function(data) {
+        $('#container').html('<div style="background-color: ' + $.encodeForCSS(data['background-color']) + '">');
+    });
+</pre>
 
-h3. encodeForJavascript
+h3. @encodeForHTML( String input )@
 
-h3. encodeForURL
+This method allows developers to encode data specifically to be inserted between two tags in a document, either through the use of the @html()@ method or by accessing @innerHTML@ directly.
+
+<pre lang="ruby">
+    $.post('http://untrusted.com/news/', function(data) {
+        $('#element').html( $.encodeForHTML(data) );
+    });
+</pre>
+
+h3. @encodeForHTMLAttribute( String input, char[] immune )@
+
+h3. @encodeForJavascript( String input, char[] immune )@
+
+h3. @encodeForURL( String input, char[] immune )@
 
 h2. Instance Methods
 
-h3. encode
+h3. @encode( Enum(html|css|attr) context, String input )@
+
+h3. @encode( Object opts )@
