@@ -7,7 +7,8 @@
 (function($) {
     var default_immune = {
         'attr'      : [',','.','-','_'],
-        'css'       : ['(',',','\'','"',')',' ']
+        'css'       : ['(',',','\'','"',')',' '] ,
+        'js'        : [',','.','_',' ']
     };
 
     var unsafeKeys = {
@@ -64,6 +65,62 @@
         }
         return encoded;
     };
+
+    /**
+     * Encodes the provided input in a manner safe to place in the value of a POST or GET parameter on a request. This
+     * is primarily used to mitigate parameter-splitting attacks and ensure that parameter values are within specification
+     *
+     * Examples:
+     *      $('#somelink').attr( 'href', $.encodeForURL( untrustedData ) );
+     *      $('#element').html('&lt;a href="' + $.encodeForURL(untrustedData) + '">Blargh&lt;/a>
+     *
+     * @param input The untrusted data to be encoded
+     */
+    $.encodeForURL = function(input) {
+        return encodeURIComponent(input);
+    };
+
+    /**
+     * Encodes the provided input in a manner safe to place in a javascript context, such as the value of an entity
+     * event like onmouseover. This encoding is slightly different than just encoding for an html attribute value as
+     * it follows the escaping rules of javascript. Use this method when dynamically writing out html to an element
+     * as opposed to building an element up using the DOM - as with the .html() method.
+     *
+     * Example $('#element').html('&lt;a onclick=somefunction(\'"' + $.encodeForJavascript($('#input').val()) + '\');">Blargh&lt;/a>');
+     *
+     * @param input The untrusted input to be encoded
+     * @param immune Any characters or character groups to be considered immune from encoding
+     */
+    $.encodeForJavascript = function(input, immune) {
+        if ( !immune ) immune = default_immune['js'];
+        var encoded = '';
+        for (var i=0; i < input.length; i++ ) {
+            var ch = input.charAt(i), cc = input.charCodeAt(i);
+            if ($.inArray(ch, immune) >= 0 || hex[cc] == null ) {
+                encoded += ch;
+                continue;
+            }
+
+            var temp = cc.toString(16), pad;
+            if ( cc < 256 ) {
+                pad = '00'.substr(temp.length);
+                encoded += '\\x' + pad + temp.toUpperCase();
+            } else {
+                pad = '0000'.substr(temp.length);
+                encoded += '\\u' + pad + temp.toUpperCase();
+            }
+        }
+        return encoded;
+    };
+
+    var hex = [];
+    for ( var c = 0; c < 0xFF; c++ ) {
+        if ( c >= 0x30 && c <= 0x39 || c >= 0x41 && c <= 0x5a || c >= 0x61 && c <= 0x7a ) {
+            hex[c] = null;
+        } else {
+            hex[c] = c.toString(16);
+        }
+    }
 
     var methods = {
         html: function(opts) {

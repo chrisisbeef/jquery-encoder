@@ -125,6 +125,18 @@
             equal( $.encodeForHTMLAttribute( '<B>' ), '&#x3c;B&#x3e;')
         });
 
+        module('URL Contextual Encoding');
+        test('URL Encoding', function() {
+            equal( $.encodeForURL('<b>'), '%3Cb%3E');
+        });
+
+        module('Javascript Contextual Encoding');
+        test('Javascript Encoding', function() {
+            equal( $.encodeForJavascript('<b>'), '\\x3Cb\\x3E' );
+            equal( $.encodeForJavascript('">'), '\\x22\\x3E');
+            equal( $.encodeForJavascript('\''), '\\x27' );
+        });
+
         if ( Object.freeze ) {
             module('Testing Frozen Object');
             test('Modify encode method', function() {
