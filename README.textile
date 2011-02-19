@@ -1,18 +1,10 @@
 h1. What is jqencoder
 
-jqencoder is a jQuery plugin whose goal is to provide jQuery developers with a means
-to do contextual output encoding on untrusted data. As applications become more and more
-reliant on rich client technologies the need for client-side code to have the ability
-to properly escape untrusted data becomes exponentially more important.
+jqencoder is a jQuery plugin whose goal is to provide jQuery developers with a means to do contextual output encoding on untrusted data. As applications become more and more reliant on rich client technologies the need for client-side code to have the ability to properly escape untrusted data becomes exponentially more important.
 
 h1. Usage
 
-Using the plugin is very simple, there are both static and instance methods to provide
-the right type of output encoding for your current situation. The plugin also provides
-a canonicalization method, which is imperative for detecting attacks that use double or
-multi encoding when handling data from an untrusted source. If you are dealing with data
-that may contain encoding, you can first canonicalize that data, then re-encode it for
-the appropriate context.
+Using the plugin is very simple, there are both static and instance methods to provide the right type of output encoding for your current situation. The plugin also provides a canonicalization method, which is imperative for detecting attacks that use double or multi encoding when handling data from an untrusted source. If you are dealing with data that may contain encoding, you can first canonicalize that data, then re-encode it for the appropriate context.
 
 <pre lang="ruby">
 <script type="text/javascript">
@@ -27,16 +19,19 @@ the appropriate context.
 
 h2. Dependencies
 <pre lang="html">
-<head>
     <script type="text/javascript" src="jquery-min.js"></script>
     <script type="text/javascript" src="Class.create.js"></script>
     <script type="text/javascript" src="jquery-encoding-0.1.0.js"></script>
-</head>
 </pre>
 
 h2. Static Methods
 
-h3. canonicalize
+h3. canonicalize( @String data@, @bool strict=true@ )
+Canonicalization (also called normalization) is the act of reducing a string to it's simplest form. For example, if the string @%3CB%3E@ is passed into the canonicalize method, the value returned will be decoded into @<b>@. The most important part of this method is that it will detect if a string is passed in that contains either multiple encoding types, or double encoding, or both. The default behavior of the method is to raise an exception if it detects one of these scenarios. As a general rule, normal application operation should never pass data that is either double encoded or encoded using multiple escaping rules. Most definately, data that is provided by a user (such as a form field) will never contain data that fits that description.
+
+<pre lang="ruby">
+    $.canonicalize(
+</pre>
 
 h3. encodeForCSS
 
