@@ -18,6 +18,7 @@ Using the plugin is very simple, there are both static and instance methods to p
 </pre>
 
 h2. Dependencies
+
 <pre lang="html">
     <script type="text/javascript" src="jquery-min.js"></script>
     <script type="text/javascript" src="Class.create.js"></script>
