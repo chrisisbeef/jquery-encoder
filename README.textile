@@ -41,7 +41,7 @@ Canonicalization (also called normalization) is the act of reducing a string to 
 
 <pre lang="ruby">
     try {
-        $.canonicalize(untrusted_data);
+        $.encoder.canonicalize(untrusted_data);
     } catch (e) {
         log.error(e);
         alert('An error has occured');
@@ -54,7 +54,7 @@ This method allows developers to encode data specifically to be inserted into th
 
 <pre lang="ruby">
     $.post('/service/userprefs', { user: userID }, function(data) {
-        $('#container').html('<div style="background-color: ' + $.encodeForCSS(data['background-color']) + '">');
+        $('#container').html('<div style="background-color: ' + $.encoder.encodeForCSS(data['background-color']) + '">');
     });
 </pre>
 
@@ -64,15 +64,37 @@ This method allows developers to encode data specifically to be inserted between
 
 <pre lang="ruby">
     $.post('http://untrusted.com/news/', function(data) {
-        $('#element').html( $.encodeForHTML(data) );
+        $('#element').html( $.encoder.encodeForHTML(data) );
     });
 </pre>
 
 h3. @encodeForHTMLAttribute( String input, char[] immune )@
 
+This method allows developers to encode data specifically to be inserted between quotes in an HTML Attribute value.
+
+<pre lang="ruby">
+    $.post('http://untrusted.com/profile', function(data) {
+        $('#element').html( '<div width="' + $.encoder.encodeForHTMLAttribute(data.width) + '">' );
+    }
+</pre>
+
 h3. @encodeForJavascript( String input, char[] immune )@
 
+This method allows developers to encode data specifically to be inserted into a javascript event on an DOM element. This method will escape for a javascript context instead of a html attribute context.
+
+<pre lang="ruby">
+    $.post('http://untrusted.com/profile', function(data) {
+        $('#element').html( '<div onmouseover="someFunction(\'' + $.encoder.encodeForJavascript(data.event) + '\)">');
+    }
+</pre>
+
 h3. @encodeForURL( String input, char[] immune )@
+
+This method allows developers to encode data specifically to be inserted into a URL context. This is useful for encoding links with untrusted data in them.
+
+<pre lang="ruby">
+    $('#dyn_link').html('<a href="/profile/' + $.encoder.encodeForURL(userID) + '">Link</a>');
+</pre>
 
 h2. Instance Methods
 
