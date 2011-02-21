@@ -13,104 +13,143 @@
 
     var unsafeKeys = {
         'attr'      : [],
-        'css'       : ['behavior', '-moz-behavior']
+        'css'       : ['behavior', '-moz-behavior', '-ms-behavior']
     };
 
     /**
-     * Encodes the provided input in a manner safe to place between to HTML tags
-     * @param input The untrusted input to be encoded
+     * Encoder is the static container for the encodeFor* series and canonicalize methods. They are contained within
+     * the encoder object so the plugin can take advantage of object freezing provided in ES5 to protect these methods
+     * from being tampered with at runtime.
      */
-    $.encodeForHTML = function(input) {
-        var div = document.createElement('div');
-        $(div).text(input);
-        return $(div).html();
-    };
+    $.encoder = {
+        /**
+         * Encodes the provided input in a manner safe to place between to HTML tags
+         * @param input The untrusted input to be encoded
+         */
+        encodeForHTML: function(input) {
+            var div = document.createElement('div');
+            $(div).text(input);
+            return $(div).html();
+        },
 
-    /**
-     * Encodes the provided input in a manner safe to place in the value (between to "'s) in an HTML attribute.
-     * @param input The untrusted input to be encoded
-     * @param immune Any characters or character groups to be considered immune from encoding
-     */
-    $.encodeForHTMLAttribute = function(input, immune) {
-        if ( !immune ) immune = default_immune['attr'];
-        var encoded = '';
-        for (var i = 0; i < input.length; i++) {
-            var ch = input.charAt(i), cc = input.charCodeAt(i);
-            if (!ch.match(/[a-zA-Z0-9]/) && $.inArray(ch, immune) < 0) {
-                var hex = cc.toString(16);
-                encoded += '&#x' + hex + ';';
-            } else {
-                encoded += ch;
+        /**
+         * Encodes the provided input in a manner safe to place in the value (between to "'s) in an HTML attribute.
+         * @param input The untrusted input to be encoded
+         * @param immune Any characters or character groups to be considered immune from encoding
+         */
+        encodeForHTMLAttribute: function(input,immune) {
+            if ( !immune ) immune = default_immune['attr'];
+            var encoded = '';
+            for (var i = 0; i < input.length; i++) {
+                var ch = input.charAt(i), cc = input.charCodeAt(i);
+                if (!ch.match(/[a-zA-Z0-9]/) && $.inArray(ch, immune) < 0) {
+                    var hex = cc.toString(16);
+                    encoded += '&#x' + hex + ';';
+                } else {
+                    encoded += ch;
+                }
             }
+            return encoded;
+        },
+
+        /**
+         * Encodes the provided input in a manner safe to place in the value of an elements <code>style</code> attribute
+         * @param input The untrusted input to be encoded
+         * @param immune Any characters or character groups to be considered immune from encoding
+         */
+        encodeForCSS: function(input,immune) {
+            if ( !immune ) immune = default_immune['css'];
+            var encoded = '';
+            for (var i = 0; i < input.length; i++) {
+                var ch = input.charAt(i), cc = input.charCodeAt(i);
+                if (!ch.match(/[a-zA-Z0-9]/) && $.inArray(ch, immune) < 0) {
+                    var hex = cc.toString(16);
+                    encoded += '\\' + hex;
+                } else {
+                    encoded += ch;
+                }
+            }
+            return encoded;
+        },
+
+        /**
+         * Encodes the provided input in a manner safe to place in the value of a POST or GET parameter on a request. This
+         * is primarily used to mitigate parameter-splitting attacks and ensure that parameter values are within specification
+         *
+         * Examples:
+         *      $('#somelink').attr( 'href', $.encodeForURL( untrustedData ) );
+         *      $('#element').html('&lt;a href="' + $.encodeForURL(untrustedData) + '">Blargh&lt;/a>
+         *
+         * @param input The untrusted data to be encoded
+         */
+        encodeForURL: function(input) {
+            return encodeURIComponent(input);
+        },
+
+        /**
+         * Encodes the provided input in a manner safe to place in a javascript context, such as the value of an entity
+         * event like onmouseover. This encoding is slightly different than just encoding for an html attribute value as
+         * it follows the escaping rules of javascript. Use this method when dynamically writing out html to an element
+         * as opposed to building an element up using the DOM - as with the .html() method.
+         *
+         * Example $('#element').html('&lt;a onclick=somefunction(\'"' + $.encodeForJavascript($('#input').val()) + '\');">Blargh&lt;/a>');
+         *
+         * @param input The untrusted input to be encoded
+         * @param immune Any characters or character groups to be considered immune from encoding
+         */
+        encodeForJavascript: function(input,immune) {
+            if ( !immune ) immune = default_immune['js'];
+            var encoded = '';
+            for (var i=0; i < input.length; i++ ) {
+                var ch = input.charAt(i), cc = input.charCodeAt(i);
+                if ($.inArray(ch, immune) >= 0 || hex[cc] == null ) {
+                    encoded += ch;
+                    continue;
+                }
+
+                var temp = cc.toString(16), pad;
+                if ( cc < 256 ) {
+                    pad = '00'.substr(temp.length);
+                    encoded += '\\x' + pad + temp.toUpperCase();
+                } else {
+                    pad = '0000'.substr(temp.length);
+                    encoded += '\\u' + pad + temp.toUpperCase();
+                }
+            }
+            return encoded;
+        },
+
+        canonicalize: function(input,strict) {
+            if (input===null) return null;
+            var out = input, cycle_out = input;
+            var decodeCount = 0, cycles = 0;
+
+            var codecs =  [ new HTMLEntityCodec(), new PercentCodec(), new CSSCodec() ];
+
+            while (true) {
+                cycle_out = out;
+
+                for (var i=0; i < codecs.length; i++ ) {
+                    var new_out = codecs[i].decode(out);
+                    if (new_out != out) {
+                        decodeCount++;
+                        out = new_out;
+                    }
+                }
+
+                if (cycle_out == out) {
+                    break;
+                }
+
+                cycles++;
+            }
+
+            if (strict && decodeCount > 1) {
+                throw "Attack Detected - Multiple/Double Encodings used in input";
+            }
+
+            return out;
         }
-        return encoded;
-    };
-
-    /**
-     * Encodes the provided input in a manner safe to place in the value of an elements <code>style</code> attribute
-     * @param input The untrusted input to be encoded
-     * @param immune Any characters or character groups to be considered immune from encoding
-     */
-    $.encodeForCSS = function(input, immune) {
-        if ( !immune ) immune = default_immune['css'];
-        var encoded = '';
-        for (var i = 0; i < input.length; i++) {
-            var ch = input.charAt(i), cc = input.charCodeAt(i);
-            if (!ch.match(/[a-zA-Z0-9]/) && $.inArray(ch, immune) < 0) {
-                var hex = cc.toString(16);
-                encoded += '\\' + hex;
-            } else {
-                encoded += ch;
-            }
-        }
-        return encoded;
-    };
-
-    /**
-     * Encodes the provided input in a manner safe to place in the value of a POST or GET parameter on a request. This
-     * is primarily used to mitigate parameter-splitting attacks and ensure that parameter values are within specification
-     *
-     * Examples:
-     *      $('#somelink').attr( 'href', $.encodeForURL( untrustedData ) );
-     *      $('#element').html('&lt;a href="' + $.encodeForURL(untrustedData) + '">Blargh&lt;/a>
-     *
-     * @param input The untrusted data to be encoded
-     */
-    $.encodeForURL = function(input) {
-        return encodeURIComponent(input);
-    };
-
-    /**
-     * Encodes the provided input in a manner safe to place in a javascript context, such as the value of an entity
-     * event like onmouseover. This encoding is slightly different than just encoding for an html attribute value as
-     * it follows the escaping rules of javascript. Use this method when dynamically writing out html to an element
-     * as opposed to building an element up using the DOM - as with the .html() method.
-     *
-     * Example $('#element').html('&lt;a onclick=somefunction(\'"' + $.encodeForJavascript($('#input').val()) + '\');">Blargh&lt;/a>');
-     *
-     * @param input The untrusted input to be encoded
-     * @param immune Any characters or character groups to be considered immune from encoding
-     */
-    $.encodeForJavascript = function(input, immune) {
-        if ( !immune ) immune = default_immune['js'];
-        var encoded = '';
-        for (var i=0; i < input.length; i++ ) {
-            var ch = input.charAt(i), cc = input.charCodeAt(i);
-            if ($.inArray(ch, immune) >= 0 || hex[cc] == null ) {
-                encoded += ch;
-                continue;
-            }
-
-            var temp = cc.toString(16), pad;
-            if ( cc < 256 ) {
-                pad = '00'.substr(temp.length);
-                encoded += '\\x' + pad + temp.toUpperCase();
-            } else {
-                pad = '0000'.substr(temp.length);
-                encoded += '\\u' + pad + temp.toUpperCase();
-            }
-        }
-        return encoded;
     };
 
     var hex = [];
@@ -124,7 +163,7 @@
 
     var methods = {
         html: function(opts) {
-            return $.encodeForHTML(opts.unsafe);
+            return $.encoder.encodeForHTML(opts.unsafe);
         },
 
         css: function(opts) {
@@ -139,9 +178,9 @@
 
             for (var k in work) {
                 if ( !(typeof work[k] == 'function') && work.hasOwnProperty(k) ) {
-                    var cKey = $.canonicalize(k, opts.strict);
+                    var cKey = $.encoder.canonicalize(k, opts.strict);
                     if ($.inArray(cKey, unsafeKeys[opts.context]) < 0) {
-                        out[k] = $.encodeForCSS(work[k]);
+                        out[k] = $.encoder.encodeForCSS(work[k]);
                     }
                 }
             }
@@ -160,9 +199,9 @@
 
             for (var k in work) {
                 if ( ! (typeof work[k] == 'function') && work.hasOwnProperty(k) ) {
-                    var cKey = $.canonicalize(k, opts.strict);
+                    var cKey = $.encoder.canonicalize(k, opts.strict);
                     if ($.inArray(cKey, unsafeKeys[opts.context]) < 0) {
-                        out[k] = $.encodeForHTMLAttribute(work[k]);
+                        out[k] = $.encoder.encodeForHTMLAttribute(work[k]);
                     }
                 }
             }
@@ -217,38 +256,6 @@
         return opts.setter.call(this, methods[opts.context].call(this, opts));
     };
 
-    $.canonicalize = function(input, strict) {
-        if (input===null) return null;
-        var out = input, cycle_out = input;
-        var decodeCount = 0, cycles = 0;
-
-        var codecs =  [ new HTMLEntityCodec(), new PercentCodec(), new CSSCodec() ];
-
-        while (true) {
-            cycle_out = out;
-
-            for (var i=0; i < codecs.length; i++ ) {
-                var new_out = codecs[i].decode(out);
-                if (new_out != out) {
-                    decodeCount++;
-                    out = new_out;
-                }
-            }
-
-            if (cycle_out == out) {
-                break;
-            }
-
-            cycles++;
-        }
-
-        if (strict && decodeCount > 1) {
-            throw "Attack Detected - Multiple/Double Encodings used in input";
-        }
-
-        return out;
-    };
-
     /**
      * The pushback string is used by Codecs to allow them to push decoded characters back onto a string for further
      * decoding. This is necessary to detect double-encoding.
@@ -263,8 +270,8 @@
         _hasNext: function() {
             if ( this._input == null ) return false;
             if ( this._input.length == 0 ) return false;
-            if ( this._index >= this._input.length ) return false;
-            return true
+            return this._index < this._input.length;
+
         },
 
         init: function(input) {
@@ -330,6 +337,9 @@
         }
     });
 
+    /**
+     * Base class for all codecs to extend. This class defines the default behavior or codecs
+     */
     var Codec = Class.extend({
         decode: function(input) {
             var out = '', pbs = new PushbackString(input);
@@ -348,6 +358,12 @@
             return pbs.next();
         }
     });
+
+    /**
+     * Codec for decoding HTML Entities in strings. This codec will decode named entities as well as numeric and hex
+     * entities even with padding. For named entities, it interally uses a Trie to locate the 'best-match' and speed
+     * up the search.
+     */
     var HTMLEntityCodec = Codec.extend({
         decodeCharacter: function(input) {
             input.mark();
@@ -429,7 +445,7 @@
             }
 
             var i = parseInt(out,16);
-            if ( !isNaN(i) && String.isValidCodePoint(i) ) return String.fromCharCode(i);
+            if ( !isNaN(i) && isValidCodePoint(i) ) return String.fromCharCode(i);
             return null;
         },
 
@@ -449,10 +465,14 @@
             }
 
             var i = parseInt(out,10);
-            if ( !isNaN(i) && String.isValidCodePoint(i) ) return String.fromCharCode(i);
+            if ( !isNaN(i) && isValidCodePoint(i) ) return String.fromCharCode(i);
             return null;
         }
     });
+
+    /**
+     * Codec for decoding url-encoded strings.
+     */
     var PercentCodec = Codec.extend({
         decodeCharacter: function(input) {
             input.mark();
@@ -475,7 +495,7 @@
 
             if (out.length == 2) {
                 var p = parseInt(out, 16);
-                if ( String.isValidCodePoint(p) )
+                if ( isValidCodePoint(p) )
                     return String.fromCharCode(p);
             }
 
@@ -483,6 +503,10 @@
             return null;
         }
     });
+
+    /**
+     * Codec for decoding CSS escaped text. This codec will decode both decimal and hex values.
+     */
     var CSSCodec = Codec.extend({
         decodeCharacter: function(input) {
             input.mark();
@@ -498,6 +522,8 @@
                 return null;
             }
 
+            // fallthrough logic is intentional here
+            // noinspection FallthroughInSwitchStatementJS
             switch(second) {
                 case '\r':
                     if (input.peek('\n')) {
@@ -506,7 +532,7 @@
                 case '\n':
                 case '\f':
                 case '\u0000':
-                    return decodeCharacter(input);
+                    return this.decodeCharacter(input);
             }
 
             if ( parseInt(second,16) == 'NaN' ) {
@@ -516,7 +542,7 @@
             var out = second;
             for(var j=0;j<5;j++) {
                 var c = input.next();
-                if (c==null || String.isWhiteSpace(c)) {
+                if (c==null || isWhiteSpace(c)) {
                     break;
                 }
                 if (parseInt(c,16) != 'NaN') {
@@ -528,13 +554,16 @@
             }
 
             var p = parseInt(out,16);
-            if (String.isValidCodePoint(p))
+            if (isValidCodePoint(p))
                 return String.fromCharCode(p);
 
             return '\ufffd';
         }
     });
 
+    /**
+     * Trie implementation for Javascript for fast querying and longest matching string lookups.
+     */
     var Trie = Class.extend({
         root: null,
         maxKeyLen: 0,
@@ -672,12 +701,22 @@
     Trie.Node.newNodeMap = function() {
         return {};
     };
-    String.isValidCodePoint = function(codepoint) {
+
+    /**
+     * Match the Java implementation of the isValidCodePoint check
+     * @param codepoint codepoint to check
+     */
+    var isValidCodePoint = function(codepoint) {
         return codepoint >= 0x0000 && codepoint <= 0x10FFFF;
     };
-    String.isWhiteSpace = function(input) {
+
+    /**
+     * Perform a quick whitespace check on the supplied string.
+     * @param input string to check
+     */
+    var isWhiteSpace = function(input) {
         return input.match(/[\s]/);
-    }
+    };
 
     // TODO: There has to be a better way to do this. These are only here for canonicalization
     var MAP_ENTITY_TO_CHAR = [];
@@ -1205,15 +1244,15 @@
 
     })();
 
-    // If ECMA5 Enabled Browser - Lock the encoder down as much as possible
+    // If ES5 Enabled Browser - Lock the encoder down as much as possible
     if ( Object.freeze ) {
-        Object.freeze($.fn.encode);
-        Object.freeze($.canonicalize);
+        $.encoder = Object.freeze($.encoder);
+        $.fn.encode = Object.freeze($.fn.encode);
     } else if ( Object.seal ) {
-        Object.seal($.fn.encode);
-        Object.seal($.canonicalize);
+        $.encoder = Object.seal($.encoder);
+        $.fn.encode = Object.seal($.fn.encode);
     } else if ( Object.preventExtensions ) {
-        Object.preventExtensions($.fn.encode);
-        Object.preventExtensions($.canonicalize);
+        $.encoder = Object.preventExtensions($.encoder);
+        $.fn.encode = Object.preventExtensions($.fn.encode);
     }
 })(jQuery);

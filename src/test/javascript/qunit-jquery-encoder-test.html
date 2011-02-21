@@ -9,7 +9,8 @@
 <html>
 <head>
     <title>jQuery-Encoder-Plugin TestSuite</title>
-    <link rel="stylesheet" href="http://github.com/jquery/qunit/raw/master/qunit/qunit.css" type="text/css" media="screen"/>
+    <link rel="stylesheet" href="http://github.com/jquery/qunit/raw/master/qunit/qunit.css" type="text/css"
+          media="screen"/>
     <script type="text/javascript" src="http://code.jquery.com/qunit/git/qunit.js"></script>
     <script type="text/javascript" src="http://code.jquery.com/jquery-1.5.min.js"></script>
     <script type="text/javascript" src="../../../libs/Class.create.js"></script>
@@ -17,84 +18,84 @@
     <!--<script type="text/javascript" src="/Users/cschmidt/Projects/ESAPI4JS/jquery-encoder/target/jquery-encoder-2.0.js"></script>-->
     <script type="text/javascript">
         module('Canonicalize Test Suite');
-        var $fn = $.canonicalize;
+        var $fn = $.encoder.canonicalize;
 
         test('Null Paths', function() {
-            strictEqual($fn(null),      null);
-            strictEqual($fn(null, true),null);
-            strictEqual($fn(null, false),null);
+            strictEqual($fn(null), null);
+            strictEqual($fn(null, true), null);
+            strictEqual($fn(null, false), null);
         });
 
         test('Exception Paths', function() {
-            equal($fn('%25', true),     '%');
-            equal($fn('%25', false),    '%');
-            equal($fn('%25'),           '%');
-            equal($fn('%25F'),          '%F');
-            equal($fn('%3c'),           '<');
-            equal($fn('%3C'),           '<');
-            equal($fn('%X1'),           '%X1');
-            equal($fn('&lt'),           '<');
-            equal($fn('&Lt'),           '<');
-            equal($fn('&lT'),           '<');
-            equal($fn('&LT'),           '<');
-            equal($fn('&lt;'),          '<');
-            equal($fn('&Lt;'),          '<');
-            equal($fn('&lT;'),          '<');
-            equal($fn('&LT;'),          '<');
-            equal($fn('&#37;'),         '%');
-            equal($fn('&#37'),          '%');
-            equal($fn('&#37b'),         '%b');
-            equal($fn('&#x3c'),         '<');
-            equal($fn('&#x3c;'),        '<');
-            equal($fn('&#x3C'),         '<');
-            equal($fn('&#X3c'),         '<');
-            equal($fn('&#X3C'),         '<');
-            equal($fn('&#X3C;'),        '<');
+            equal($fn('%25', true), '%');
+            equal($fn('%25', false), '%');
+            equal($fn('%25'), '%');
+            equal($fn('%25F'), '%F');
+            equal($fn('%3c'), '<');
+            equal($fn('%3C'), '<');
+            equal($fn('%X1'), '%X1');
+            equal($fn('&lt'), '<');
+            equal($fn('&Lt'), '<');
+            equal($fn('&lT'), '<');
+            equal($fn('&LT'), '<');
+            equal($fn('&lt;'), '<');
+            equal($fn('&Lt;'), '<');
+            equal($fn('&lT;'), '<');
+            equal($fn('&LT;'), '<');
+            equal($fn('&#37;'), '%');
+            equal($fn('&#37'), '%');
+            equal($fn('&#37b'), '%b');
+            equal($fn('&#x3c'), '<');
+            equal($fn('&#x3c;'), '<');
+            equal($fn('&#x3C'), '<');
+            equal($fn('&#X3c'), '<');
+            equal($fn('&#X3C'), '<');
+            equal($fn('&#X3C;'), '<');
         });
 
         test('Percent Encoding', function() {
-            equal($fn('%3c'),           '<');
-            equal($fn('%3C'),           '<');
+            equal($fn('%3c'), '<');
+            equal($fn('%3C'), '<');
         });
 
         test('HTML Entity Encoding', function() {
-            equal($fn('&#60'),'<');
-            equal($fn('&#060'),'<');
-            equal($fn('&#0060'),'<');
-            equal($fn('&#00060'),'<');
-            equal($fn('&#000060'),'<');
-            equal($fn('&#0000060'),'<');
-            equal($fn('&#60;'),'<');
-            equal($fn('&#060;'),'<');
-            equal($fn('&#0060;'),'<');
-            equal($fn('&#00060;'),'<');
-            equal($fn('&#000060;'),'<');
-            equal($fn('&#0000060;'),'<');
-            equal($fn('&#x3c'),'<');
-            equal($fn('&#x03c'),'<');
-            equal($fn('&#x003c'),'<');
-            equal($fn('&#x0003c'),'<');
-            equal($fn('&#x00003c'),'<');
-            equal($fn('&#x000003c'),'<');
-            equal($fn('&#x3c;'),'<');
-            equal($fn('&#x03c;'),'<');
-            equal($fn('&#x003c;'),'<');
-            equal($fn('&#x0003c;'),'<');
-            equal($fn('&#x00003c;'),'<');
-            equal($fn('&#x000003c;'),'<');
+            equal($fn('&#60'), '<');
+            equal($fn('&#060'), '<');
+            equal($fn('&#0060'), '<');
+            equal($fn('&#00060'), '<');
+            equal($fn('&#000060'), '<');
+            equal($fn('&#0000060'), '<');
+            equal($fn('&#60;'), '<');
+            equal($fn('&#060;'), '<');
+            equal($fn('&#0060;'), '<');
+            equal($fn('&#00060;'), '<');
+            equal($fn('&#000060;'), '<');
+            equal($fn('&#0000060;'), '<');
+            equal($fn('&#x3c'), '<');
+            equal($fn('&#x03c'), '<');
+            equal($fn('&#x003c'), '<');
+            equal($fn('&#x0003c'), '<');
+            equal($fn('&#x00003c'), '<');
+            equal($fn('&#x000003c'), '<');
+            equal($fn('&#x3c;'), '<');
+            equal($fn('&#x03c;'), '<');
+            equal($fn('&#x003c;'), '<');
+            equal($fn('&#x0003c;'), '<');
+            equal($fn('&#x00003c;'), '<');
+            equal($fn('&#x000003c;'), '<');
         });
 
         test('CSS Encoding', function() {
-            equal($fn('\\3c'),'<');
-            equal($fn('\\03c'),'<');
-            equal($fn('\\003c'),'<');
-            equal($fn('\\0003c'),'<');
-            equal($fn('\\00003c'),'<');
-            equal($fn('\\3C'),'<');
-            equal($fn('\\03C'),'<');
-            equal($fn('\\003C'),'<');
-            equal($fn('\\0003C'),'<');
-            equal($fn('\\00003C'),'<');
+            equal($fn('\\3c'), '<');
+            equal($fn('\\03c'), '<');
+            equal($fn('\\003c'), '<');
+            equal($fn('\\0003c'), '<');
+            equal($fn('\\00003c'), '<');
+            equal($fn('\\3C'), '<');
+            equal($fn('\\03C'), '<');
+            equal($fn('\\003C'), '<');
+            equal($fn('\\0003C'), '<');
+            equal($fn('\\00003C'), '<');
         });
 
         test('Detect Double Encoding', function() {
@@ -110,39 +111,46 @@
         module('HTML Entity Contextual Encoding');
         test('Entity Encoding', function() {
             var e = $('#test');
-            e.encode('html', "<b>" );
-            equal( e.html(), '&lt;b&gt;' );
+            e.encode('html', "<b>");
+            equal(e.html(), '&lt;b&gt;');
             e.encode('html', "&lt;script&gt;");
-            equal( e.html(), '&amp;lt;script&amp;gt;');
-            equal( $.encodeForHTML('<b>'), '&lt;b&gt;')
-            equal( $.encodeForHTML('&lt;script&gt;'), '&amp;lt;script&amp;gt;' );
+            equal(e.html(), '&amp;lt;script&amp;gt;');
+            equal($.encoder.encodeForHTML('<b>'), '&lt;b&gt;')
+            equal($.encoder.encodeForHTML('&lt;script&gt;'), '&amp;lt;script&amp;gt;');
         });
 
         module('HTML Attribute Contextual Encoding');
         test('Attribute Encoding', function() {
             var e = $('#test');
-            equal( e.encode( 'attr', 'a', '<B>').attr('a'), '&#x3c;B&#x3e;' );
-            equal( $.encodeForHTMLAttribute( '<B>' ), '&#x3c;B&#x3e;')
+            equal(e.encode('attr', 'a', '<B>').attr('a'), '&#x3c;B&#x3e;');
+            equal($.encoder.encodeForHTMLAttribute('<B>'), '&#x3c;B&#x3e;')
         });
 
         module('URL Contextual Encoding');
         test('URL Encoding', function() {
-            equal( $.encodeForURL('<b>'), '%3Cb%3E');
+            equal($.encoder.encodeForURL('<b>'), '%3Cb%3E');
         });
 
         module('Javascript Contextual Encoding');
         test('Javascript Encoding', function() {
-            equal( $.encodeForJavascript('<b>'), '\\x3Cb\\x3E' );
-            equal( $.encodeForJavascript('">'), '\\x22\\x3E');
-            equal( $.encodeForJavascript('\''), '\\x27' );
+            equal($.encoder.encodeForJavascript('<b>'), '\\x3Cb\\x3E');
+            equal($.encoder.encodeForJavascript('">'), '\\x22\\x3E');
+            equal($.encoder.encodeForJavascript('\''), '\\x27');
         });
 
-        if ( Object.freeze ) {
+        if (Object.freeze) {
             module('Testing Frozen Object');
-            test('Modify encode method', function() {
-               raises($.fn.encode = function(a,b) {
-                   return b;
-               });
+            test('isFrozen', function() {
+                ok( Object.isFrozen($.encoder));
+                ok( Object.isFrozen($.fn.encode));
+            });
+        }
+
+        if (Object.seal) {
+            module('Testing Sealed Object');
+            test('isSealed', function() {
+                ok( Object.isSealed($.encoder));
+                ok( Object.isSealed($.fn.encode));
             });
         }
     </script>
@@ -150,6 +158,7 @@
 <body>
 <div id="test" style="visibility: hidden;">test</div>
 <h1 id="qunit-header">jQuery Encoder TestSuite</h1>
+
 <h2 id="qunit-banner"></h2>
 <ol id="qunit-tests" class="result"></ol>
 </body>
