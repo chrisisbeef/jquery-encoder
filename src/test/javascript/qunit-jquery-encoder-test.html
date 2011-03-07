@@ -14,8 +14,8 @@
     <script type="text/javascript" src="http://code.jquery.com/qunit/git/qunit.js"></script>
     <script type="text/javascript" src="http://code.jquery.com/jquery-1.5.min.js"></script>
     <script type="text/javascript" src="../../../libs/Class.create.js"></script>
-    <script type="text/javascript" src="../../main/javascript/org/owasp/esapi/jquery/encoder.js"></script>
-    <!--<script type="text/javascript" src="/Users/cschmidt/Projects/ESAPI4JS/jquery-encoder/target/jquery-encoder-2.0.js"></script>-->
+    <!--<script type="text/javascript" src="../../main/javascript/org/owasp/esapi/jquery/encoder.js"></script>-->
+    <script type="text/javascript" src="../../../jquery-encoder-0.1.0.js"></script>
     <script type="text/javascript">
         module('Canonicalize Test Suite');
         var $fn = $.encoder.canonicalize;
@@ -123,7 +123,7 @@
         test('Attribute Encoding', function() {
             var e = $('#test');
             equal(e.encode('attr', 'a', '<B>').attr('a'), '&#x3c;B&#x3e;');
-            equal($.encoder.encodeForHTMLAttribute('<B>'), '&#x3c;B&#x3e;')
+            equal($.encoder.encodeForHTMLAttribute('a', '<B>'), 'a="&#x3c;B&#x3e;"')
         });
 
         module('URL Contextual Encoding');
@@ -136,6 +136,48 @@
             equal($.encoder.encodeForJavascript('<b>'), '\\x3Cb\\x3E');
             equal($.encoder.encodeForJavascript('">'), '\\x22\\x3E');
             equal($.encoder.encodeForJavascript('\''), '\\x27');
+        });
+
+        module('CSS Contextual Encoding');
+        test('Test CSS Escaping Whitelist', function() {
+            equal($.encoder.encodeForCSS('background', 'url("http://site.com/background.jpg?a=1&b=2") 100% top left #CCC'), 'background: url("http://site.com/background.jpg?a=1&b=2") 100% top left #CCC');
+            equal($.encoder.encodeForCSS('background-color', '#C0C0C0'), 'background-color: #C0C0C0');
+            equal($.encoder.encodeForCSS('background-image', 'url("http://site.com/background.jpg?a=1&b=2")'), 'background-image: url("http://site.com/background.jpg?a=1&b=2")');
+            equal($.encoder.encodeForCSS('border-color', '#C0C0C0'), 'border-color: #C0C0C0');
+            equal($.encoder.encodeForCSS('border-image', 'url("http://site.com/background.jpg?a=1&b=2")'), 'border-image: url("http://site.com/background.jpg?a=1&b=2")');
+            equal($.encoder.encodeForCSS('color', '#C0C0C0'), 'color: #C0C0C0');
+            equal($.encoder.encodeForCSS('icon', 'url("http://site.com/background.jpg?a=1&b=2")'), 'icon: url("http://site.com/background.jpg?a=1&b=2")');
+            equal($.encoder.encodeForCSS('list-style-image', 'url("http://site.com/background.jpg?a=1&b=2")'), 'list-style-image: url("http://site.com/background.jpg?a=1&b=2")');
+            equal($.encoder.encodeForCSS('outline-color', '#C0C0C0'), 'outline-color: #C0C0C0');
+        });
+
+        test('Test CSS Unsafe Blacklist', function() {
+            raises( function() {
+                $.encoder.encodeForCSS('background', 'expression(eval(alert(x)))');
+            }, 'CSS Expressions');
+            raises( function() {
+                $.encoder.encodeForCSS('behavior', 'url(xss.js)');
+            }, 'Behavior Value');
+            raises( function() {
+                $.encoder.encodeForCSS('-moz-behavior', 'url(xss.js)');
+            }, 'Behavior (Mozilla Variant) Value');
+            raises( function() {
+                $.encoder.encodeForCSS('-ms-behavior', 'url(xss.js)');
+            }, 'Behavior (Microsoft Variant) Value');
+        });
+
+        test('Ensure Proper CSS Escaping Syntax', function() {
+            equal($.encoder.encodeForCSS('color', '%'), 'color: \\000025');
+        });
+
+        test('CSS Instance Method', function() {
+            equal($('#test').encode({
+                context: 'css',
+                map: {
+                    'background-color': '#C0C0C0',
+                    'background-image': 'url("http://site.com/graphic.jpg")'
+                }
+            }).css('background-image'), 'url("http://site.com/graphic.jpg")');
         });
 
         if (Object.freeze) {

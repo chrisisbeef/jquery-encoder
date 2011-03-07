@@ -6,15 +6,57 @@
  */
 (function($) {
     var default_immune = {
-        'attr'      : [',','.','-','_'],
-        'css'       : ['(',',','\'','"',')',' '] ,
         'js'        : [',','.','_',' ']
     };
 
-    var unsafeKeys = {
-        'attr'      : [],
-        'css'       : ['behavior', '-moz-behavior', '-ms-behavior']
+    var attr_whitelist_classes = {
+        'default': [',','.','-','_',' ']
     };
+
+    var attr_whitelist = {
+        'width': ['%'],
+        'height': ['%']
+    };
+
+    var css_whitelist_classes = {
+        'default': ['-',' ','%'],
+        'color': ['#',' ','(',')'],
+        'image': ['(',')',':','/','?','&','-','.','"','=',' ']
+    };
+
+    var css_whitelist = {
+        'background': ['(',')',':','%','/','?','&','-',' ','.','"','=','#'],
+        'background-image': css_whitelist_classes['image'],
+        'background-color': css_whitelist_classes['color'],
+        'border-color': css_whitelist_classes['color'],
+        'border-image': css_whitelist_classes['image'],
+        'color': css_whitelist_classes['color'],
+        'icon': css_whitelist_classes['image'],
+        'list-style-image': css_whitelist_classes['image'],
+        'outline-color': css_whitelist_classes['color']
+    };
+
+    // In addition to whitelist filtering for proper encoding - there are some things that should just simply be
+    // considered to be unsafe. Setting javascript events or style properties with the encodeHTMLAttribute method and
+    // using javascript: urls should be looked at as bad form all the way around and should be avoided. The blacklisting
+    // feature of the plugin can be disabled by calling $.encoder.disableBlacklist() prior to the first call encoding
+    // takes place (ES5 Compatibility Only)
+    var unsafeKeys = {
+        // Style and JS Event attributes should be set through the appropriate methods encodeForCSS, encodeForURL, or
+        // encodeForJavascript
+        'attr_name' : ['on[a-z]{1,}', 'style', 'href', 'src'],
+        // Allowing Javascript url's in untrusted data is a bad idea.
+        'attr_val'  : ['javascript:'],
+        // These css keys and values are considered to be unsafe to pass in untrusted data into.
+        'css_key'   : ['behavior', '-moz-behavior', '-ms-behavior'],
+        'css_val'   : ['expression']
+    };
+
+    var options = {
+        blacklist: true
+    };
+
+    var hasBeenInitialized = false;
 
     /**
      * Encoder is the static container for the encodeFor* series and canonicalize methods. They are contained within
@@ -22,11 +64,36 @@
      * from being tampered with at runtime.
      */
     $.encoder = {
+        author: 'Chris Schmidt (chris.schmidt@owasp.org)',
+        version: '${project.version}',
+
+        /**
+         * Allows configuration of runtime options prior to using the plugin. Once the plugin has been initialized,
+         * options cannot be changed.
+         *
+         * Possible Options:
+         * <pre>
+         * Options              Description                         Default
+         * ----------------------------------------------------------------------------
+         * blacklist            Enable blacklist validation         true
+         * </pre>
+         *
+         * @param opts
+         */
+        init: function(opts) {
+            if ( hasBeenInitialized )
+                throw "jQuery Encoder has already been initialized - cannot set options after initialization";
+
+            hasBeenInitialized = true;
+            $.extend( options, opts );
+        },
+
         /**
          * Encodes the provided input in a manner safe to place between to HTML tags
          * @param input The untrusted input to be encoded
          */
         encodeForHTML: function(input) {
+            hasBeenInitialized = true;
             var div = document.createElement('div');
             $(div).text(input);
             return $(div).html();
@@ -34,12 +101,56 @@
 
         /**
          * Encodes the provided input in a manner safe to place in the value (between to "'s) in an HTML attribute.
+         *
+         * Unless directed not to, this method will return the full <code>attr="value"</code> as a string. If
+         * <code>omitAttributeName</code> is true, the method will only return the <code>value</code>. Both the attribute
+         * name and value are canonicalized and verified with whitelist and blacklist prior to returning.
+         *
+         * Example:
+         * <pre>
+         * $('#container').html('&lt;div ' + $.encoder.encodeForHTMLAttribute('class', untrustedData) + '/>');
+         * </pre>
+         *
+         * @param attr The attribute to encode for
          * @param input The untrusted input to be encoded
-         * @param immune Any characters or character groups to be considered immune from encoding
+         * @param omitAttributeName Whether to omit the attribute name and the enclosing quotes or not from the encoded
+         *                          output.
+         * @throws String Reports error when an unsafe attribute name or value is used (unencoded)
+         * @throws String Reports error when attribute name contains invalid characters (unencoded)
          */
-        encodeForHTMLAttribute: function(input,immune) {
-            if ( !immune ) immune = default_immune['attr'];
+        encodeForHTMLAttribute: function(attr,input,omitAttributeName) {
+            hasBeenInitialized = true;
+            // Check for unsafe attributes
+            attr = $.encoder.canonicalize(attr).toLowerCase();
+            input = $.encoder.canonicalize(input);
+
+            if ( $.inArray(attr, unsafeKeys['attr_name']) >= 0 ) {
+                throw "Unsafe attribute name used: " + attr;
+            }
+
+            for ( var a=0; a < unsafeKeys['attr_val']; a++ ) {
+                if ( input.toLowerCase().match(unsafeKeys['attr_val'][a]) ) {
+                    throw "Unsafe attribute value used: " + input;
+                }
+            }
+
+            immune = attr_whitelist[attr];
+            // If no whitelist exists for the attribute, use the minimal default whitelist
+            if ( !immune ) immune = attr_whitelist_classes['default'];
+
             var encoded = '';
+
+            if (!omitAttributeName) {
+                for (var p = 0; p < attr.length; p++ ) {
+                    var pc = attr.charAt(p);
+                    if (!pc.match(/[a-zA-Z\-0-9]/)) {
+                        throw "Invalid attribute name specified";
+                    }
+                    encoded += pc;
+                }
+                encoded += '="';
+            }
+
             for (var i = 0; i < input.length; i++) {
                 var ch = input.charAt(i), cc = input.charCodeAt(i);
                 if (!ch.match(/[a-zA-Z0-9]/) && $.inArray(ch, immune) < 0) {
@@ -49,26 +160,78 @@
                     encoded += ch;
                 }
             }
+
+            if (!omitAttributeName) {
+                encoded += '"';
+            }
+
             return encoded;
         },
 
         /**
          * Encodes the provided input in a manner safe to place in the value of an elements <code>style</code> attribute
+         *
+         * Unless directed not to, this method will return the full <code>property: value</code> as a string. If
+         * <code>omitPropertyName</code> is <code>true</code>, the method will only return the <code>value</code>. Both
+         * the property name and value are canonicalized and verified with whitelist and blacklist prior to returning.
+         *
+         * Example:
+         * <pre>
+         * $('#container').html('&lt;div style="' + $.encoder.encodeForCSS('background-image', untrustedData) + '"/>');
+         * </pre>
+         *
+         * @param propName The property name that is being set
          * @param input The untrusted input to be encoded
-         * @param immune Any characters or character groups to be considered immune from encoding
+         * @param omitPropertyName Whether to omit the property name from the encoded output
+         *
+         * @throws String Reports error when an unsafe property name or value is used
+         * @throws String Reports error when illegal characters passed in property name
          */
-        encodeForCSS: function(input,immune) {
-            if ( !immune ) immune = default_immune['css'];
+        encodeForCSS: function(propName,input,omitPropertyName) {
+            hasBeenInitialized = true;
+            // Check for unsafe properties
+            propName = $.encoder.canonicalize(propName).toLowerCase();
+            input = $.encoder.canonicalize(input);
+
+            if ( $.inArray(propName, unsafeKeys['css_key'] ) >= 0 ) {
+                throw "Unsafe property name used: " + propName;
+            }
+
+            for ( var a=0; a < unsafeKeys['css_val'].length; a++ ) {
+                if ( input.toLowerCase().indexOf(unsafeKeys['css_val'][a]) >= 0 ) {
+                    throw "Unsafe property value used: " + input;
+                }
+            }
+
+            immune = css_whitelist[propName];
+            // If no whitelist exists for that property, use the minimal default whitelist
+            if ( !immune ) immune = css_whitelist_classes['default'];
+
             var encoded = '';
+
+            if (!omitPropertyName) {
+                for (var p = 0; p < propName.length; p++) {
+                    var pc = propName.charAt(p);
+                    if (!pc.match(/[a-zA-Z\-]/)) {
+                        throw "Invalid Property Name specified";
+                    }
+                    encoded += pc;
+                }
+
+                encoded += ': ';
+            }
+
             for (var i = 0; i < input.length; i++) {
                 var ch = input.charAt(i), cc = input.charCodeAt(i);
                 if (!ch.match(/[a-zA-Z0-9]/) && $.inArray(ch, immune) < 0) {
                     var hex = cc.toString(16);
-                    encoded += '\\' + hex;
+                    var pad = '000000'.substr((hex.length));
+                    encoded += '\\' + pad + hex;
                 } else {
                     encoded += ch;
                 }
             }
+
             return encoded;
         },
 
@@ -76,14 +239,25 @@
          * Encodes the provided input in a manner safe to place in the value of a POST or GET parameter on a request. This
          * is primarily used to mitigate parameter-splitting attacks and ensure that parameter values are within specification
          *
-         * Examples:
-         *      $('#somelink').attr( 'href', $.encodeForURL( untrustedData ) );
-         *      $('#element').html('&lt;a href="' + $.encodeForURL(untrustedData) + '">Blargh&lt;/a>
-         *
          * @param input The untrusted data to be encoded
+         * @param attr (optional) If passed in, the method will return the full string <code>attr="value"</code> where
+         *             the value will be encoded for a URL and both the attribute and value will be canonicalized prior
+         *             to encoding the value.
          */
-        encodeForURL: function(input) {
-            return encodeURIComponent(input);
+        encodeForURL: function(input,attr) {
+            hasBeenInitialized = true;
+            var encoded = '';
+            if (attr) {
+                if (attr.match(/^[A-Za-z\-0-9]{1,}$/)) {
+                    encoded += $.encoder.canonicalize(attr).toLowerCase();
+                } else {
+                    throw "Illegal Attribute Name Specified";
+                }
+                encoded += '="';
+            }
+            encoded += encodeURIComponent(input);
+            encoded += attr ? '"' : '';
+            return encoded;
         },
 
         /**
@@ -95,9 +269,9 @@
          * Example $('#element').html('&lt;a onclick=somefunction(\'"' + $.encodeForJavascript($('#input').val()) + '\');">Blargh&lt;/a>');
          *
          * @param input The untrusted input to be encoded
-         * @param immune Any characters or character groups to be considered immune from encoding
          */
-        encodeForJavascript: function(input,immune) {
+        encodeForJavascript: function(input) {
+            hasBeenInitialized = true;
             if ( !immune ) immune = default_immune['js'];
             var encoded = '';
             for (var i=0; i < input.length; i++ ) {
@@ -120,6 +294,7 @@
         },
 
         canonicalize: function(input,strict) {
+            hasBeenInitialized = true;
             if (input===null) return null;
             var out = input, cycle_out = input;
             var decodeCount = 0, cycles = 0;
@@ -178,10 +353,7 @@
 
             for (var k in work) {
                 if ( !(typeof work[k] == 'function') && work.hasOwnProperty(k) ) {
-                    var cKey = $.encoder.canonicalize(k, opts.strict);
-                    if ($.inArray(cKey, unsafeKeys[opts.context]) < 0) {
-                        out[k] = $.encoder.encodeForCSS(work[k]);
-                    }
+                    out[k] = $.encoder.encodeForCSS(k, work[k], true);
                 }
             }
             return out;
@@ -199,10 +371,7 @@
 
             for (var k in work) {
                 if ( ! (typeof work[k] == 'function') && work.hasOwnProperty(k) ) {
-                    var cKey = $.encoder.canonicalize(k, opts.strict);
-                    if ($.inArray(cKey, unsafeKeys[opts.context]) < 0) {
-                        out[k] = $.encoder.encodeForHTMLAttribute(work[k]);
-                    }
+                    out[k] = $.encoder.encodeForHTMLAttribute(k,work[k],true);
                 }
             }
 
@@ -215,6 +384,7 @@
      * be one of 'html', 'css', or 'attr'
      */
     $.fn.encode = function() {
+        hasBeenInitialized = true;
         var argCount = arguments.length;
         var opts = {
             'context'   : 'html',

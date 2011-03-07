@@ -5,20 +5,34 @@
  * LICENSE before you use, modify, and/or redistribute this software.
  */
 
-(function($){var default_immune={'attr':[',','.','-','_'],'css':['(',',','\'','"',')',' '],'js':[',','.','_',' ']};var unsafeKeys={'attr':[],'css':['behavior','-moz-behavior','-ms-behavior']};$.encoder={encodeForHTML:function(input){var div=document.createElement('div');$(div).text(input);return $(div).html();},encodeForHTMLAttribute:function(input,immune){if(!immune)immune=default_immune['attr'];var encoded='';for(var i=0;i<input.length;i++){var ch=input.charAt(i),cc=input.charCodeAt(i);if(!ch.match(/[a-zA-Z0-9]/)&&$.inArray(ch,immune)<0){var hex=cc.toString(16);encoded+='&#x'+hex+';';}else{encoded+=ch;}}
-return encoded;},encodeForCSS:function(input,immune){if(!immune)immune=default_immune['css'];var encoded='';for(var i=0;i<input.length;i++){var ch=input.charAt(i),cc=input.charCodeAt(i);if(!ch.match(/[a-zA-Z0-9]/)&&$.inArray(ch,immune)<0){var hex=cc.toString(16);encoded+='\\'+hex;}else{encoded+=ch;}}
-return encoded;},encodeForURL:function(input){return encodeURIComponent(input);},encodeForJavascript:function(input,immune){if(!immune)immune=default_immune['js'];var encoded='';for(var i=0;i<input.length;i++){var ch=input.charAt(i),cc=input.charCodeAt(i);if($.inArray(ch,immune)>=0||hex[cc]==null){encoded+=ch;continue;}
+(function($){var default_immune={'js':[',','.','_',' ']};var attr_whitelist_classes={'default':[',','.','-','_',' ']};var attr_whitelist={'width':['%'],'height':['%']};var css_whitelist_classes={'default':['-',' ','%'],'color':['#',' ','(',')'],'image':['(',')',':','/','?','&','-','.','"','=',' ']};var css_whitelist={'background':['(',')',':','%','/','?','&','-',' ','.','"','=','#'],'background-image':css_whitelist_classes['image'],'background-color':css_whitelist_classes['color'],'border-color':css_whitelist_classes['color'],'border-image':css_whitelist_classes['image'],'color':css_whitelist_classes['color'],'icon':css_whitelist_classes['image'],'list-style-image':css_whitelist_classes['image'],'outline-color':css_whitelist_classes['color']};var unsafeKeys={'attr_name':['on[a-z]{1,}','style','href','src'],'attr_val':['javascript:'],'css_key':['behavior','-moz-behavior','-ms-behavior'],'css_val':['expression']};var options={blacklist:true};var hasBeenInitialized=false;$.encoder={author:'Chris Schmidt (chris.schmidt@owasp.org)',version:'${project.version}',init:function(opts){if(hasBeenInitialized)
+throw"jQuery Encoder has already been initialized - cannot set options after initialization";hasBeenInitialized=true;$.extend(options,opts);},encodeForHTML:function(input){hasBeenInitialized=true;var div=document.createElement('div');$(div).text(input);return $(div).html();},encodeForHTMLAttribute:function(attr,input,omitAttributeName){hasBeenInitialized=true;attr=$.encoder.canonicalize(attr).toLowerCase();input=$.encoder.canonicalize(input);if($.inArray(attr,unsafeKeys['attr_name'])>=0){throw"Unsafe attribute name used: "+attr;}
+for(var a=0;a<unsafeKeys['attr_val'];a++){if(input.toLowerCase().match(unsafeKeys['attr_val'][a])){throw"Unsafe attribute value used: "+input;}}
+immune=attr_whitelist[attr];if(!immune)immune=attr_whitelist_classes['default'];var encoded='';if(!omitAttributeName){for(var p=0;p<attr.length;p++){var pc=attr.charAt(p);if(!pc.match(/[a-zA-Z\-0-9]/)){throw"Invalid attribute name specified";}
+encoded+=pc;}
+encoded+='="';}
+for(var i=0;i<input.length;i++){var ch=input.charAt(i),cc=input.charCodeAt(i);if(!ch.match(/[a-zA-Z0-9]/)&&$.inArray(ch,immune)<0){var hex=cc.toString(16);encoded+='&#x'+hex+';';}else{encoded+=ch;}}
+if(!omitAttributeName){encoded+='"';}
+return encoded;},encodeForCSS:function(propName,input,omitPropertyName){hasBeenInitialized=true;propName=$.encoder.canonicalize(propName).toLowerCase();input=$.encoder.canonicalize(input);if($.inArray(propName,unsafeKeys['css_key'])>=0){throw"Unsafe property name used: "+propName;}
+for(var a=0;a<unsafeKeys['css_val'].length;a++){if(input.toLowerCase().indexOf(unsafeKeys['css_val'][a])>=0){throw"Unsafe property value used: "+input;}}
+immune=css_whitelist[propName];if(!immune)immune=css_whitelist_classes['default'];var encoded='';if(!omitPropertyName){for(var p=0;p<propName.length;p++){var pc=propName.charAt(p);if(!pc.match(/[a-zA-Z\-]/)){throw"Invalid Property Name specified";}
+encoded+=pc;}
+encoded+=': ';}
+for(var i=0;i<input.length;i++){var ch=input.charAt(i),cc=input.charCodeAt(i);if(!ch.match(/[a-zA-Z0-9]/)&&$.inArray(ch,immune)<0){var hex=cc.toString(16);var pad='000000'.substr((hex.length));encoded+='\\'+pad+hex;}else{encoded+=ch;}}
+return encoded;},encodeForURL:function(input,attr){hasBeenInitialized=true;var encoded='';if(attr){if(attr.match(/^[A-Za-z\-0-9]{1,}$/)){encoded+=$.encoder.canonicalize(attr).toLowerCase();}else{throw"Illegal Attribute Name Specified";}
+encoded+='="';}
+encoded+=encodeURIComponent(input);encoded+=attr?'"':'';return encoded;},encodeForJavascript:function(input){hasBeenInitialized=true;if(!immune)immune=default_immune['js'];var encoded='';for(var i=0;i<input.length;i++){var ch=input.charAt(i),cc=input.charCodeAt(i);if($.inArray(ch,immune)>=0||hex[cc]==null){encoded+=ch;continue;}
 var temp=cc.toString(16),pad;if(cc<256){pad='00'.substr(temp.length);encoded+='\\x'+pad+temp.toUpperCase();}else{pad='0000'.substr(temp.length);encoded+='\\u'+pad+temp.toUpperCase();}}
-return encoded;},canonicalize:function(input,strict){if(input===null)return null;var out=input,cycle_out=input;var decodeCount=0,cycles=0;var codecs=[new HTMLEntityCodec(),new PercentCodec(),new CSSCodec()];while(true){cycle_out=out;for(var i=0;i<codecs.length;i++){var new_out=codecs[i].decode(out);if(new_out!=out){decodeCount++;out=new_out;}}
+return encoded;},canonicalize:function(input,strict){hasBeenInitialized=true;if(input===null)return null;var out=input,cycle_out=input;var decodeCount=0,cycles=0;var codecs=[new HTMLEntityCodec(),new PercentCodec(),new CSSCodec()];while(true){cycle_out=out;for(var i=0;i<codecs.length;i++){var new_out=codecs[i].decode(out);if(new_out!=out){decodeCount++;out=new_out;}}
 if(cycle_out==out){break;}
 cycles++;}
 if(strict&&decodeCount>1){throw"Attack Detected - Multiple/Double Encodings used in input";}
 return out;}};var hex=[];for(var c=0;c<0xFF;c++){if(c>=0x30&&c<=0x39||c>=0x41&&c<=0x5a||c>=0x61&&c<=0x7a){hex[c]=null;}else{hex[c]=c.toString(16);}}
 var methods={html:function(opts){return $.encoder.encodeForHTML(opts.unsafe);},css:function(opts){var work=[];var out=[];if(opts.map){work=opts.map;}else{work[opts.name]=opts.unsafe;}
-for(var k in work){if(!(typeof work[k]=='function')&&work.hasOwnProperty(k)){var cKey=$.encoder.canonicalize(k,opts.strict);if($.inArray(cKey,unsafeKeys[opts.context])<0){out[k]=$.encoder.encodeForCSS(work[k]);}}}
+for(var k in work){if(!(typeof work[k]=='function')&&work.hasOwnProperty(k)){out[k]=$.encoder.encodeForCSS(k,work[k],true);}}
 return out;},attr:function(opts){var work=[];var out=[];if(opts.map){work=opts.map;}else{work[opts.name]=opts.unsafe;}
-for(var k in work){if(!(typeof work[k]=='function')&&work.hasOwnProperty(k)){var cKey=$.encoder.canonicalize(k,opts.strict);if($.inArray(cKey,unsafeKeys[opts.context])<0){out[k]=$.encoder.encodeForHTMLAttribute(work[k]);}}}
-return out;}};$.fn.encode=function(){var argCount=arguments.length;var opts={'context':'html','unsafe':null,'name':null,'map':null,'setter':null,'strict':true};if(argCount==1&&typeof arguments[0]=='object'){$.extend(opts,arguments[0]);}else{opts.context=arguments[0];if(arguments.length==2){if(opts.context=='html'){opts.unsafe=arguments[1];}
+for(var k in work){if(!(typeof work[k]=='function')&&work.hasOwnProperty(k)){out[k]=$.encoder.encodeForHTMLAttribute(k,work[k],true);}}
+return out;}};$.fn.encode=function(){hasBeenInitialized=true;var argCount=arguments.length;var opts={'context':'html','unsafe':null,'name':null,'map':null,'setter':null,'strict':true};if(argCount==1&&typeof arguments[0]=='object'){$.extend(opts,arguments[0]);}else{opts.context=arguments[0];if(arguments.length==2){if(opts.context=='html'){opts.unsafe=arguments[1];}
 else if(opts.content=='attr'||opts.content=='css'){opts.map=arguments[1];}}else{opts.name=arguments[1];opts.unsafe=arguments[2];}}
 if(opts.context=='html'){opts.setter=this.html;}
 else if(opts.context=='css'){opts.setter=this.css;}
