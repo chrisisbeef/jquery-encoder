@@ -119,16 +119,26 @@
          * @throws String Reports error when attribute name contains invalid characters (unencoded)
          */
         encodeForHTMLAttribute: function(attr,input,omitAttributeName) {
+            // Declaring immune as a local variable. Don't want to share it between the different encode functions.
+            var immune;
             hasBeenInitialized = true;
             // Check for unsafe attributes
             attr = $.encoder.canonicalize(attr).toLowerCase();
             input = $.encoder.canonicalize(input);
 
-            if ( $.inArray(attr, unsafeKeys['attr_name']) >= 0 ) {
-                throw "Unsafe attribute name used: " + attr;
+            // Event handlers like onmouseover should not be allowed as an attribute encoded via this method,
+            // they should be encoded via encodeForJavascript.
+            // The blacklist for attribute names contains a regular expression to identify them, on[a-z]{1,},
+            // but the regular expression is not applied since inArray() in jQuery doesn’t support regular expressions.
+            // Note that the regexp is quite wide, for instance is NonExistingAttributeName a match.
+            for ( var i=0; i < unsafeKeys['attr_name'].length; i++ ) {
+                if ( attr.toLowerCase().match(unsafeKeys['attr_name'][i]) ) {
+                    throw "Unsafe attribute name used: " + attr;
+                }
             }
 
-            for ( var a=0; a < unsafeKeys['attr_val']; a++ ) {
+            // Length has to be added in order to execute the loop that searches for unsafe attribute values.
+            for ( var a=0; a < unsafeKeys['attr_val'].length; a++ ) {
                 if ( input.toLowerCase().match(unsafeKeys['attr_val'][a]) ) {
                     throw "Unsafe attribute value used: " + input;
                 }
@@ -188,6 +198,8 @@
          * @throws String Reports error when illegal characters passed in property name
          */
         encodeForCSS: function(propName,input,omitPropertyName) {
+            // Declaring immune as a local variable. Don't want to share it between the different encode functions.
+            var immune;
             hasBeenInitialized = true;
             // Check for unsafe properties
             propName = $.encoder.canonicalize(propName).toLowerCase();
@@ -271,8 +283,9 @@
          * @param input The untrusted input to be encoded
          */
         encodeForJavascript: function(input) {
+            // Declaring immune as a local variable. Don't want to share it between the different encode functions.
+            var immune = default_immune['js'];
             hasBeenInitialized = true;
-            if ( !immune ) immune = default_immune['js'];
             var encoded = '';
             for (var i=0; i < input.length; i++ ) {
                 var ch = input.charAt(i), cc = input.charCodeAt(i);
