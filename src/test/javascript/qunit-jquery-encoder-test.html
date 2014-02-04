@@ -17,6 +17,17 @@
     <!--<script type="text/javascript" src="../../main/javascript/org/owasp/esapi/jquery/encoder.js"></script>-->
     <script type="text/javascript" src="../../../jquery-encoder-0.1.0.js"></script>
     <script type="text/javascript">
+
+        // Additional test added to identify an issue with the jquery-encoder.
+        // Problem is the global variable immune: it is used in encodeForHTMLAttribute, encodeForCSS and encodeForJavascript.
+        // It is not initialized in encodeForJavascript, which leads to random behaviour,
+        // it uses the same immune characters as previous function call, irrespective of which of the encoding functions
+        // that preceded this call, or even worse if not set earlier by someone else an exception is raised.
+        module('Javascript Contextual Encoding');
+        test('Javascript Encoding', function() {
+            equal($.encoder.encodeForJavascript('<b>'), '\\x3Cb\\x3E');
+        });
+
         module('Canonicalize Test Suite');
         var $fn = $.encoder.canonicalize;
 
@@ -124,6 +135,24 @@
             var e = $('#test');
             equal(e.encode('attr', 'a', '<B>').attr('a'), '&#x3c;B&#x3e;');
             equal($.encoder.encodeForHTMLAttribute('a', '<B>'), 'a="&#x3c;B&#x3e;"')
+            // Additional test added to identify an issue with the jquery-encoder.
+            // Event handlers like onmouseover should not be allowed as an attribute encoded via this method,
+            // they should be encoded via encodeForJavascript.
+            // The blacklist for attribute names contains a regular expression to identify them, on[a-z]{1,},
+            // but the regular expression is not applied since inArray() in jQuery doesn’t support regular expressions.
+            raises( function() {
+                $.encoder.encodeForHTMLAttribute('onmouseover', 'alert(xyz)', true);
+            }, 'Invalid html attribute onmouseover');
+            raises( function() {
+                $.encoder.encodeForHTMLAttribute('href', 'alert(xyz)', true);
+            }, 'Invalid html attribute href');
+            // Additional test added to identify an issue with the jquery-encoder.
+            // javascript: isn't recognized as an unsafe attribute value
+            raises( function() {
+                // To prevent JsHint warning for variable value "javascript:" we concat two separate ones. JsHint you fool!
+                var colon = ':', js = "javascript", unsafeValue = js + colon;
+                $.encoder.encodeForHTMLAttribute('a', unsafeValue);
+            }, 'Invalid HTML attribute value javascript:');
         });
 
         module('URL Contextual Encoding');
