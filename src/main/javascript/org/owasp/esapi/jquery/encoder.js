@@ -163,7 +163,7 @@
 
             for (var i = 0; i < input.length; i++) {
                 var ch = input.charAt(i), cc = input.charCodeAt(i);
-                if (!ch.match(/[a-zA-Z0-9]/) && $.inArray(ch, immune) < 0) {
+                if (!ch.match(/[a-zA-Z0-9\uD800-\uDBFF\uDC00-\uDFFF]/) && $.inArray(ch, immune) < 0) {
                     var hex = cc.toString(16);
                     encoded += '&#x' + hex + ';';
                 } else {
