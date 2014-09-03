@@ -8,6 +8,7 @@
 -->
 <html>
 <head>
+    <meta charset="UTF-8">
     <title>jQuery-Encoder-Plugin TestSuite</title>
     <link rel="stylesheet" href="http://code.jquery.com/qunit/qunit-git.css" type="text/css"
           media="screen"/>
@@ -153,6 +154,11 @@
                 var colon = ':', js = "javascript", unsafeValue = js + colon;
                 $.encoder.encodeForHTMLAttribute('a', unsafeValue);
             }, 'Invalid HTML attribute value javascript:');
+            // Test that unicode astral characters are ignored
+            equal(e.encode('attr', 'a', '\uD834\uDF06').attr('a'), '𝌆');
+            equal($.encoder.encodeForHTMLAttribute('a', '\uD834\uDF06'), 'a="𝌆"')
+            equal(e.encode('attr', 'a', '🍔').attr('a'), '🍔');
+            equal($.encoder.encodeForHTMLAttribute('a', '🍔'), 'a="🍔"')
         });
 
         module('URL Contextual Encoding');
