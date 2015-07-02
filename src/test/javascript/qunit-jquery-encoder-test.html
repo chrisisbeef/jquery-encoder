@@ -8,10 +8,11 @@
 -->
 <html>
 <head>
+    <meta charset="UTF-8">
     <title>jQuery-Encoder-Plugin TestSuite</title>
-    <link rel="stylesheet" href="http://github.com/jquery/qunit/raw/master/qunit/qunit.css" type="text/css"
+    <link rel="stylesheet" href="http://code.jquery.com/qunit/qunit-git.css" type="text/css"
           media="screen"/>
-    <script type="text/javascript" src="http://code.jquery.com/qunit/git/qunit.js"></script>
+    <script type="text/javascript" src="http://code.jquery.com/qunit/qunit-git.js"></script>
     <script type="text/javascript" src="http://code.jquery.com/jquery-1.5.min.js"></script>
     <script type="text/javascript" src="../../../libs/Class.create.js"></script>
     <!--<script type="text/javascript" src="../../main/javascript/org/owasp/esapi/jquery/encoder.js"></script>-->
@@ -115,8 +116,8 @@
             equal($fn('%2525', false), '%');
             equal($fn('%26lt%3b', false), '<');
             equal($fn('&#x25;26', false), '&');
-            raises($fn('%26lt; %26lt; &#x25;3c'), "Double and Multiple encoding detected");
-            raises($fn('%25252525253C'), "Double Encoding detected");
+            throws($fn('%26lt; %26lt; &#x25;3c'), "Double and Multiple encoding detected");
+            throws($fn('%25252525253C'), "Double Encoding detected");
         });
 
         module('HTML Entity Contextual Encoding');
@@ -140,19 +141,24 @@
             // they should be encoded via encodeForJavascript.
             // The blacklist for attribute names contains a regular expression to identify them, on[a-z]{1,},
             // but the regular expression is not applied since inArray() in jQuery doesn’t support regular expressions.
-            raises( function() {
+            throws( function() {
                 $.encoder.encodeForHTMLAttribute('onmouseover', 'alert(xyz)', true);
             }, 'Invalid html attribute onmouseover');
-            raises( function() {
+            throws( function() {
                 $.encoder.encodeForHTMLAttribute('href', 'alert(xyz)', true);
             }, 'Invalid html attribute href');
             // Additional test added to identify an issue with the jquery-encoder.
             // javascript: isn't recognized as an unsafe attribute value
-            raises( function() {
+            throws( function() {
                 // To prevent JsHint warning for variable value "javascript:" we concat two separate ones. JsHint you fool!
                 var colon = ':', js = "javascript", unsafeValue = js + colon;
                 $.encoder.encodeForHTMLAttribute('a', unsafeValue);
             }, 'Invalid HTML attribute value javascript:');
+            // Test that unicode astral characters are ignored
+            equal(e.encode('attr', 'a', '\uD834\uDF06').attr('a'), '𝌆');
+            equal($.encoder.encodeForHTMLAttribute('a', '\uD834\uDF06'), 'a="𝌆"')
+            equal(e.encode('attr', 'a', '🍔').attr('a'), '🍔');
+            equal($.encoder.encodeForHTMLAttribute('a', '🍔'), 'a="🍔"')
         });
 
         module('URL Contextual Encoding');
@@ -181,16 +187,16 @@
         });
 
         test('Test CSS Unsafe Blacklist', function() {
-            raises( function() {
+            throws( function() {
                 $.encoder.encodeForCSS('background', 'expression(eval(alert(x)))');
             }, 'CSS Expressions');
-            raises( function() {
+            throws( function() {
                 $.encoder.encodeForCSS('behavior', 'url(xss.js)');
             }, 'Behavior Value');
-            raises( function() {
+            throws( function() {
                 $.encoder.encodeForCSS('-moz-behavior', 'url(xss.js)');
             }, 'Behavior (Mozilla Variant) Value');
-            raises( function() {
+            throws( function() {
                 $.encoder.encodeForCSS('-ms-behavior', 'url(xss.js)');
             }, 'Behavior (Microsoft Variant) Value');
         });

@@ -2,6 +2,11 @@ h1. What is jqencoder
 
 jqencoder is a jQuery plugin whose goal is to provide jQuery developers with a means to do contextual output encoding on untrusted data. As applications become more and more reliant on rich client technologies the need for client-side code to have the ability to properly escape untrusted data becomes exponentially more important.
 
+h1. News
+
+Oct 24, 2014
+It's awesome that so many people have taken an interest in this little proof of concept plugin I wrote! I'll be making some updates over the next couple months and putting out a new release. If there are any changes you would like to see in the release let me know!
+
 h1. Why Encode Output
 
 Proper contextual output encoding is the primary and most effective way to combat Cross-Site Scripting (XSS) attacks. The premise is to use the escaping rules of the current context to not allow an attacker to break out of that context. The reason that output encoding is so important is because HTML, by nature, mixes code and data; thus an attacker can disguise code as data and that code can be executed unintentionally by other users.
