@@ -51,13 +51,13 @@ Canonicalization (also called normalization) is the act of reducing a string to 
     }
 ```
 
-`@encodeForCSS( String input, char[] immune )`
+`@encodeForCSS( String propName, String input, boolean omitPropertyName )`
 
 This method allows developers to encode data specifically to be inserted into the @style@ attribute of an element or as the value of a style attribute passed in through the jQuery `.style()` method.
 
 ```
     $.post('/service/userprefs', { user: userID }, function(data) {
-        $('#container').html('<div style="background-color: ' + $.encoder.encodeForCSS(data['background-color']) + '">');
+        $('#container').html('<div style="' + $.encoder.encodeForCSS('background-color', data['background-color']) + '">');
     });
 ```
 
@@ -71,17 +71,18 @@ This method allows developers to encode data specifically to be inserted between
     });
 ```
 
-`encodeForHTMLAttribute( String input, char[] immune )`
+`encodeForHTMLAttribute( String attr, String input, boolean omitAttributeName=false )`
 
 This method allows developers to encode data specifically to be inserted between quotes in an HTML Attribute value.
 
 ```
     $.post('http://untrusted.com/profile', function(data) {
-        $('#element').html( '<div width="' + $.encoder.encodeForHTMLAttribute(data.width) + '">' );
+        $('#element').html( '<div ' + $.encoder.encodeForHTMLAttribute('width', data.width) + '">' );
+        // <div width="90"/>
     }
 ```
 
-`encodeForJavascript( String input, char[] immune )`
+`encodeForJavascript( String input )`
 
 This method allows developers to encode data specifically to be inserted into a javascript event on an DOM element. This method will escape for a javascript context instead of a html attribute context.
 
@@ -91,12 +92,13 @@ This method allows developers to encode data specifically to be inserted into a 
     }
 ```
 
-`encodeForURL( String input, char[] immune )`
+`encodeForURL( String input, attr=null )`
 
-This method allows developers to encode data specifically to be inserted into a URL context. This is useful for encoding links with untrusted data in them.
+This method allows developers to encode data specifically to be inserted into a URL context. This is useful for encoding links with untrusted data in them. If the optional `attr` parameter is passed this function will return the full value `attr=<encoded_value`.
 
 ```
-    $('#dyn_link').html('<a href="/profile/' + $.encoder.encodeForURL(userID) + '">Link</a>');
+    $('#dyn_link').html('<a href="/profile?' + $.encoder.encodeForURL(userID, 'userID') + '">Link</a>');
+    // <a href="/profile?userID=123>Link</a>
 ```
 
 ### Instance Methods
