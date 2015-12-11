@@ -1,0 +1,11 @@
+{
+	"name": "jquery-encoder",
+	"version": "0.1.0",
+	"homepage": "https://github.com/robertdmunn/jquery-encoder",
+	"authors": ["Chrisis Beef <chrisisbeef@gmail.com>"],
+	"description": "jQuery plugin whose goal is to provide jQuery developers with a means to do contextual output encoding on untrusted data",
+	"main": "./jquery-encoder-0.1.0.js",
+	"ignore": ["**/.*", "node_modules", "bower_components", "src", "test", "tests", "jquery-encoder.iml", "jquery-encoder.ipr", "pom.xml"],
+	"keywords": ["jquery", "encoder", "OWASP", "security", "XSS"],
+	"license": "MIT"
+}
