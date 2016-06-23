@@ -12,11 +12,13 @@ Download the [production version][min] or the [development version][max].
 
 Run `npm install` to install the plugin dependencies
 
-  * John Resig's Class.create.js 1.1.4+
+  * John Resig's [Class.extend](https://github.com/mattinsler/resig-class)
+
+
   
 Or download the [Class Library][classes_lib] manually.
 
-[classes_lib]: https://raw.github.com/chrisisbeef/jquery-encoder/master/list/class.min.js
+[classes_lib]: https://raw.githubusercontent.com/mattinsler/resig-class/master/index.js
 
 ## Usage
 
