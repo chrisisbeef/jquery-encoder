@@ -27,7 +27,7 @@ Using the plugin is very simple, there are both static and instance methods to p
 <script type="text/javascript" src="/path/to/class.min.js"></script>
 <script type="text/javascript">
     $.post( 'http://untrusted.com/webservice', { parameter1: 'value' }, function(data) {
-        // Data returned may contain encoded data, so canonicalize the data to it's simplest
+        // Data returned may contain encoded data, so canonicalize the data to its simplest
         // form prior to encoding it for use on the page.
         var cdata = $.canonicalize(data);
         $('#element').encode('html', cdata);
